@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}{{ device.name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('web.home') }}">← 設備總覽</a>
+<div class="page-title"><p class="eyebrow">{{ device.model }} / {{ device.slug }}</p><h1>{{ device.name }}</h1><p class="lead">{{ device.description }}</p></div>
+<div class="two-column">
+<section class="panel"><div class="section-heading"><h2>安排借用</h2><span class="badge {{ device.state }}">{{ {'available':'可借用','maintenance':'維護中','active':'使用中','preparing':'準備中','releasing':'回收中'}[device.state] }}</span></div>
+{% if device.driver == 'simulated' %}<div class="notice info">目前為模擬設備，可完整操作借用、預約與歸還。尚無實體 Jupyter 工作空間。</div>{% endif %}
+{% if has_open %}<div class="notice warning">你已有一筆借用或預約。請先前往<a href="{{ url_for('web.rentals') }}">我的借用</a>結束或取消。</div>{% endif %}
+<form class="stack-form" method="post" action="{{ url_for('web.book',device_id=device.id) }}" data-booking-form>
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<fieldset class="choice-group"><legend>借用方式</legend><label><input type="radio" name="mode" value="now" checked><span>立即借用</span></label><label><input type="radio" name="mode" value="scheduled"><span>預約時段</span></label></fieldset>
+<label id="scheduled-time" hidden>開始時間（{{ timezone }}）<input type="datetime-local" name="starts_at" step="60"></label>
+<label>使用時間<select name="minutes">{% for minute in range(15,device.max_minutes+1,15) %}<option value="{{ minute }}" {% if minute == 60 %}selected{% endif %}>{{ minute }} 分鐘</option>{% endfor %}</select></label>
+<p class="small muted">單次最長 {{ device.max_minutes }} 分鐘。未來預約限 14 天內；開始時間到達後自動啟用，結束時間不因準備延遲而延長。</p>
+<button class="button" type="submit" {% if has_open or device.maintenance %}disabled{% endif %}>確認借用 <span aria-hidden="true">→</span></button>
+</form></section>
+<aside class="panel"><h2>已安排時段</h2><p class="muted small">避開以下時段，即可安排你的實驗。</p>
+{% if device.available_at %}<div class="schedule-row"><span class="badge active">目前占用</span><p>預計 {{ local_time(device.available_at) }} 結束<br><span class="muted small">仍需等待回收完成</span></p></div>{% endif %}
+{% for slot in device.reservations %}<div class="schedule-row"><span class="schedule-dot" aria-hidden="true"></span><div>{{ local_time(slot.starts_at) }}<span class="muted"> — </span>{{ local_time(slot.ends_at) }}<p class="small muted">已預約</p></div></div>{% else %}<div class="compact-empty">目前沒有待開始的預約。</div>{% endfor %}
+<div class="aside-note"><h3>借用前請確認</h3><p>每日維護時段不開放借用。實驗結束前，請下載並保存自己的檔案。</p><a class="inline-link" href="{{ url_for('web.guide') }}">查看借用須知 →</a></div>
+</aside></div>
+{% endblock %}

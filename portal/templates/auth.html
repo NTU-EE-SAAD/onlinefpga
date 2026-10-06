@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ '建立帳號' if registering else '登入' }}{% endblock %}
+{% block content %}
+<div class="auth-layout"><section class="auth-intro"><p class="eyebrow">ONLINEFPGA / ACCESS</p><h1>{{ '你的實驗，\n從這裡開始。' if registering else '歡迎回到\n你的工作空間。' }}</h1><p>一個帳號，管理設備借用與實驗時段。</p><div class="auth-detail"><span class="line-icon" aria-hidden="true">↗</span><p>自主註冊，無需學校登入。<br>使用常用信箱建立你的帳號。</p></div></section>
+<section class="auth-panel"><h2>{{ '建立帳號' if registering else '登入帳號' }}</h2><p class="muted">{{ '填寫以下資料，即可開始安排實驗。' if registering else '輸入電子郵件與密碼。' }}</p>
+<form method="post" class="stack-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% if registering %}<label>姓名<input name="name" autocomplete="name" required minlength="2" maxlength="60" value="{{ request.form.get('name','') }}" placeholder="你的姓名"></label>{% endif %}
+<label>電子郵件<input type="email" name="email" autocomplete="email" required maxlength="254" value="{{ request.form.get('email','') }}" placeholder="you@example.com"></label>
+<label>密碼<input type="password" name="password" autocomplete="{{ 'new-password' if registering else 'current-password' }}" required {% if registering %}minlength="12"{% endif %} maxlength="128" placeholder="{{ '至少 12 個字元' if registering else '輸入密碼' }}"></label>
+{% if registering %}<label>確認密碼<input type="password" name="password_confirm" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="再輸入一次密碼"></label><label class="checkbox-label"><input type="checkbox" name="terms" value="yes" required><span>我已閱讀並同意<a href="{{ url_for('web.guide') }}" target="_blank" rel="noopener">借用須知</a>。</span></label>{% endif %}
+<button class="button button-full" type="submit">{{ '建立帳號' if registering else '登入' }} <span aria-hidden="true">→</span></button>
+</form><p class="auth-switch">{{ '已經有帳號？' if registering else '還沒有帳號？' }} <a href="{{ url_for('web.login' if registering else 'web.register') }}">{{ '登入' if registering else '建立帳號' }}</a></p>
+{% if not registering %}<p class="small muted">忘記密碼時，請聯絡實驗室管理員協助重設。</p>{% endif %}
+</section></div>
+{% endblock %}

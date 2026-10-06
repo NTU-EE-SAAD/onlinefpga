@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}我的借用{% endblock %}
+{% block content %}
+<div class="page-title title-row"><div><p class="eyebrow">YOUR WORKSPACE</p><h1>我的借用</h1><p class="lead">查看目前的安排與過往使用紀錄。</p></div><a class="button button-outline" href="{{ url_for('web.home') }}">尋找設備 →</a></div>
+{% if rentals %}<div class="table-wrap"><table><thead><tr><th>設備</th><th>借用時段</th><th>狀態</th><th><span class="sr-only">操作</span></th></tr></thead><tbody>{% for rental in rentals %}<tr data-rental-id="{{ rental.id }}" data-status="{{ rental.status }}"><td><strong>{{ rental.device_name }}</strong><span class="cell-secondary">{{ rental.model }} · {{ '模擬' if rental.driver == 'simulated' else '實體' }}</span></td><td>{{ local_time(rental.starts_at) }}<span class="cell-secondary">至 {{ local_time(rental.ends_at) }}</span></td><td><span class="badge {{ rental.status }}" data-rental-state>{{ status_label(rental.status) }}</span></td><td class="text-right"><a class="inline-link" href="{{ url_for('web.rental',rental_id=rental.id) }}">查看 →</a></td></tr>{% endfor %}</tbody></table></div>
+{% else %}<section class="empty-state"><span class="empty-symbol" aria-hidden="true">＋</span><h2>還沒有借用紀錄</h2><p>選一台設備，安排你的第一個實驗時段。</p><a class="button" href="{{ url_for('web.home') }}">查看設備 →</a></section>{% endif %}
+{% endblock %}

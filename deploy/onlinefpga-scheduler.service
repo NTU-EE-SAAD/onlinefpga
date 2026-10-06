@@ -1,0 +1,17 @@
+[Unit]
+Description=OnlineFPGA reservation and expiry scheduler
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=@PROJECT_ROOT@
+EnvironmentFile=-@PROJECT_ROOT@/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@PROJECT_ROOT@/.venv/bin/flask --app portal scheduler
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

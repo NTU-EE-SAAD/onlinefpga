@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="description" content="OnlineFPGA：設備借用、時段預約與實驗工作空間。">
+  <title>{% block title %}OnlineFPGA{% endblock %} · 設備借用平台</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body data-authenticated="{{ 'true' if g.user else 'false' }}">
+  <a class="skip-link" href="#main">跳至主要內容</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{{ url_for('web.home') }}"><span class="brand-mark" aria-hidden="true">F</span>OnlineFPGA<span class="brand-note">實驗室</span></a>
+      <nav aria-label="主要導覽">
+        <a href="{{ url_for('web.home') }}" {% if request.endpoint in ['web.home','web.device'] %}aria-current="page"{% endif %}>設備總覽</a>
+        {% if g.user %}<a href="{{ url_for('web.rentals') }}" {% if request.endpoint in ['web.rentals','web.rental'] %}aria-current="page"{% endif %}>我的借用</a>{% endif %}
+        <a href="{{ url_for('web.guide') }}" {% if request.endpoint == 'web.guide' %}aria-current="page"{% endif %}>使用指南</a>
+        {% if g.user and g.user.role == 'admin' %}<a href="{{ url_for('web.admin') }}" {% if request.endpoint == 'web.admin' %}aria-current="page"{% endif %}>管理</a>{% endif %}
+      </nav>
+      <div class="header-account">
+        {% if g.user %}
+          <a class="user-name" href="{{ url_for('web.account') }}">{{ g.user.name }}</a>
+          <form action="{{ url_for('web.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">登出</button></form>
+        {% else %}<a class="text-button" href="{{ url_for('web.login') }}">登入</a><a class="button button-small" href="{{ url_for('web.register') }}">建立帳號</a>{% endif %}
+      </div>
+    </div>
+  </header>
+  <main id="main" class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="notice {{ category }}" role="status">{{ message }}</div>{% endfor %}{% endwith %}
+    {% if g.user %}<div id="scheduler-warning" class="notice warning" hidden role="status">排程服務暫時離線，借用啟用與回收可能延遲。請聯絡管理員。</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer"><div class="container footer-inner"><span>OnlineFPGA <span class="footer-separator">/</span> 電機實驗設備借用</span><span>時間以 {{ timezone }} 為準</span></div></footer>
+</body>
+</html>
