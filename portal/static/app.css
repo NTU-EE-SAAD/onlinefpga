@@ -119,14 +119,11 @@ code {
   letter-spacing:-.4px
 }
 .brand-mark {
-  display:grid;
-  place-items:center;
-  width:31px;
-  height:31px;
-  background:var(--blue);
-  color:white;
-  border-radius:5px;
-  font-size:20px
+  display:block;
+  width:40px;
+  height:40px;
+  object-fit:contain;
+  flex-shrink:0
 }
 .brand-note {
   font-size:11px;
@@ -1161,8 +1158,8 @@ dd {
     padding-top:20px
   }
   .brand-mark {
-    width:27px;
-    height:27px
+    width:32px;
+    height:32px
   }
   .header-account .button {
     padding:5px 9px;

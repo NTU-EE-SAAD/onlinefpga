@@ -6,15 +6,16 @@
   <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="description" content="NTUEE Makerspace FPGA reservation：FPGA 設備借用、時段預約與線上工作空間。">
   <title>FPGA reservation{% if request.endpoint != 'web.home' %} · {% block title %}設備借用平台{% endblock %}{% endif %}</title>
-  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='makerspace.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='makerspace.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v='makerspace-icon-1') }}">
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body data-authenticated="{{ 'true' if g.user else 'false' }}">
   <a class="skip-link" href="#main">跳至主要內容</a>
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="{{ url_for('web.home') }}"><span class="brand-mark" aria-hidden="true">F</span>FPGA reservation<span class="brand-note">NTUEE Makerspace</span></a>
+      <a class="brand" href="{{ url_for('web.home') }}"><img class="brand-mark" src="{{ url_for('static', filename='makerspace.png') }}" alt="" width="40" height="40">FPGA reservation<span class="brand-note">NTUEE Makerspace</span></a>
       <nav aria-label="主要導覽">
         <a href="{{ url_for('web.home') }}" {% if request.endpoint in ['web.home','web.device'] %}aria-current="page"{% endif %}>設備總覽</a>
         {% if g.user %}<a href="{{ url_for('web.rentals') }}" {% if request.endpoint in ['web.rentals','web.rental'] %}aria-current="page"{% endif %}>我的借用</a>{% endif %}
