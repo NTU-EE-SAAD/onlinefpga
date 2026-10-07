@@ -136,6 +136,35 @@ sudo loginctl enable-linger onlinefpga
 
 ### HTTPS 與校外連線
 
+本台 server 的正式網域為 `mks.ntuee.org`，提供已針對此網域設定的 [Nginx vhost](deploy/nginx-mks.conf) 與安裝腳本。由 server 管理員在 SSH 終端機執行：
+
+```bash
+sudo bash /home/onlinefpga/onlinefpga/scripts/install-production.sh
+```
+
+腳本會安裝 Nginx／Certbot、檢查公開 HTTP 憑證驗證路徑、取得 Let’s Encrypt 憑證、設定自動續期及 Nginx reload、將 Gunicorn 改綁 loopback，並啟用 Secure cookie 與可信代理。完成後會檢查本機與公開 `https://mks.ntuee.org/healthz`。可用 `--email your-email@example.com` 指定 ACME 帳號信箱；未指定則不登記信箱。
+
+如果已持有有效的 Cloudflare Origin CA 或其他相容憑證，可直接指定 server 上的檔案：
+
+```bash
+sudo bash scripts/install-production.sh \
+  --certificate /absolute/path/fullchain.pem \
+  --private-key /absolute/path/private-key.pem
+```
+
+自行提供的憑證需自行管理到期與更換；私鑰保持 root 可讀的嚴格權限。Cloudflare 代理請使用 Full (strict)，且允許 WebSocket；不要快取登入頁、API 與 `/lab/`。若使用 HTTP-01，公開 TCP 80 及 `/.well-known/acme-challenge/` 必須可達；Cloudflare 規則不能把這個路徑導向尚未就緒的 HTTPS origin。使用既有憑證則不需 HTTP-01。
+
+安裝腳本不修改網卡、預設路由、SSH、router 或防火牆。校網／上游 NAT 仍需將 443 送到此 server，HTTP-01 另需 80。備份保存在 Git 忽略的 `instance/production-backup-*`；失敗時還原原 `.env`、Gunicorn override 與本 vhost，保留安裝的系統套件與已取得的憑證。正式設定成功前，網站維持原來的部署方式；成功後使用 HTTPS 網域登入。
+
+可使用已安裝的 Nginx，於隔離環境驗證設定，不需 root 或實體 FPGA：
+
+```bash
+.venv/bin/python scripts/smoke-production.py --nginx /usr/sbin/nginx
+```
+
+此測試使用暫存憑證、資料庫、模擬 Notebook 與高位連接埠，驗證 Nginx 語法、ACME 路徑、HTTPS 導向、登入、cookie、forwarded headers 及 WebSocket。測試憑證僅供隔離驗證，不會用於正式網站。
+
+
 內網 HTTP 可先測試註冊與排程。對外公開時設定域名／路由器轉送及 HTTPS，參考 [deploy/nginx.conf.example](deploy/nginx.conf.example)。
 
 1. 將 Nginx 範例中的域名與憑證路徑換成實際值。
