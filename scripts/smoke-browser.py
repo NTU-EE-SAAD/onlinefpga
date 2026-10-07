@@ -101,7 +101,7 @@ def main():
                     page.get_by_label("密碼", exact=True).fill("browser-password-1234")
                     page.get_by_role("button", name="登入", exact=True).click()
                     page.goto(base + "/admin")
-                    expect(page.get_by_role("heading", name="實驗室管理", exact=True)).to_be_visible()
+                    expect(page.get_by_role("heading", name="Makerspace 管理", exact=True)).to_be_visible()
                     expect(page.locator(".admin-device-grid article")).to_have_count(3)
                     page.set_viewport_size({"width": 390, "height": 844})
                     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth")

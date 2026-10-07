@@ -2,7 +2,7 @@
 {% block title %}設備總覽{% endblock %}
 {% block content %}
 <section class="page-intro">
-  <div><p class="eyebrow">LABORATORY / FPGA</p><h1>把時間留給實驗。</h1><p class="lead">選擇一台設備，開始你的下一個設計。</p></div>
+  <div><p class="eyebrow">NTUEE MAKERSPACE / FPGA</p><h1>把時間留給實驗。</h1><p class="lead">選擇一台設備，開始你的下一個設計。</p></div>
   <div class="intro-stat"><strong>{{ '%02d'|format(available) }}</strong><span>台設備可借用</span></div>
 </section>
 <div class="announcement"><span class="dot" aria-hidden="true"></span><span>每日 {{ maintenance_start }}–{{ maintenance_end }} 為維護時段，借用與預約需避開此時段。</span><a href="{{ url_for('web.guide') }}">借用須知 <span aria-hidden="true">↗</span></a></div>

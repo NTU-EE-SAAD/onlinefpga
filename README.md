@@ -1,6 +1,6 @@
-# OnlineFPGA · 設備借用平台
+# FPGA reservation · NTUEE Makerspace
 
-供學生自行註冊、借用與預約 FPGA 的網站，部署在實驗室自己的 Linux server。介面採黑白、藍灰配色，不使用 SSO 或學校帳號。
+供學生自行註冊、借用與預約 FPGA 的網站，由 NTUEE Makerspace 管理，部署在 Makerspace 的 Linux server。介面採黑白、藍灰配色，不使用 SSO 或學校帳號。
 
 本專案以原 [bol-edu/onlinefpga](https://github.com/bol-edu/onlinefpga) 延伸，開發目標為 [NTU-EE-SAAD/onlinefpga](https://github.com/NTU-EE-SAAD/onlinefpga)。原始設備管理程式仍保留；原安裝文件移至 [docs/legacy-onlinefpga.md](docs/legacy-onlinefpga.md)。
 
@@ -31,7 +31,7 @@
                 SQLite ← 獨立 scheduler → SSH → 板端 Notebook 服務
 ```
 
-網站使用 Python 3.10+、Flask 與 Gunicorn。SQLite 採 WAL 與 `BEGIN IMMEDIATE` 交易，借用衝突檢查與紀錄新增在同一交易完成；唯一索引另限制每人一筆未結束紀錄、每台設備一筆執行中紀錄。適合單台 server、少量至數十台板子的實驗室。資料庫需放在本機磁碟，不能放在 NFS；多台應用 server 的部署需另外改成 PostgreSQL 等共用資料庫。
+網站使用 Python 3.10+、Flask 與 Gunicorn。SQLite 採 WAL 與 `BEGIN IMMEDIATE` 交易，借用衝突檢查與紀錄新增在同一交易完成；唯一索引另限制每人一筆未結束紀錄、每台設備一筆執行中紀錄。適合單台 server、少量至數十台板子的 Makerspace。資料庫需放在本機磁碟，不能放在 NFS；多台應用 server 的部署需另外改成 PostgreSQL 等共用資料庫。
 
 新網站**不讀寫原 MongoDB**，舊 `boleduuser` 明文密碼也不會自動匯入。原 `monitord.py`、`active_monitord.py`、U50 工具保留給舊部署；兩套管理服務不可同時控制同一塊實體板。
 
@@ -244,7 +244,7 @@ print([type(device).__name__ for device in pynq.Device.devices])
 
 每次準備會寫入板端 `/etc/onlinefpga/session.py`、`/usr/local/bin/onlinefpga-jupyter` 及 `jupyter.service.d/onlinefpga.conf`，使用當次租期 token 與 `/lab/<租借編號>/` base URL。原啟動腳本與 Jupyter 設定保留。租借使用獨立的 `/etc/onlinefpga/jupyter` 設定目錄，並以 `/etc/onlinefpga/templates/tree.html` 覆寫 PYNQ 2.7 首頁中錯誤的 tooltip 呼叫；原套件檔案不變。Notebook 不再於開機自動啟動，避免重開機恢復舊租期權限；重開機後請先歸還舊借用，再借用。每個網站帳號在各板子有 `/home/root/jupyter_notebooks/onlinefpga/users/<帳號ID>/` 目錄，回收會停止服務但保留檔案。
 
-這是信任學生的實驗室共用板環境：PYNQ Notebook 以 root 操作 FPGA，**個人目錄與 token 不是容器或系統權限隔離**。具有板端執行權的使用者能存取系統，也可能存取其他目錄或更改服務；網站代理限制租借入口，不能阻止惡意 root 程式。既有內網管理入口也不由網站控制。若要提供給不可信的公開使用者，需要額外網路隔離、受限帳號／板端 agent、檔案隔離與板端恢復機制。回收目前停止 Notebook／kernel，不會重刷 SD 卡或載入指定的預設 FPGA bitstream；新實驗應主動載入自己的相容 overlay。
+這是信任學生的 Makerspace 共用板環境：PYNQ Notebook 以 root 操作 FPGA，**個人目錄與 token 不是容器或系統權限隔離**。具有板端執行權的使用者能存取系統，也可能存取其他目錄或更改服務；網站代理限制租借入口，不能阻止惡意 root 程式。既有內網管理入口也不由網站控制。若要提供給不可信的公開使用者，需要額外網路隔離、受限帳號／板端 agent、檔案隔離與板端恢復機制。回收目前停止 Notebook／kernel，不會重刷 SD 卡或載入指定的預設 FPGA bitstream；新實驗應主動載入自己的相容 overlay。
 
 回復原 Notebook 啟動方式：先維護設備、結束租借，再由板端管理員刪除 `/etc/systemd/system/jupyter.service.d/onlinefpga.conf`，執行 `sudo systemctl daemon-reload`、`sudo systemctl enable --now jupyter`。這不會刪除學生檔案，但會恢復原先的登入設定與服務行為。
 
@@ -317,4 +317,4 @@ docs/legacy-onlinefpga.md  原 repo 安裝與設備管理文件
 monitord.py / onlinefpga.py / config.py / ... 原管理工具
 ```
 
-新網站的設定來源是 `.env`，不使用舊 `config.py` 的 IP／密碼。原程式預設 IP 是範例，不代表目前實驗室的實際設備清單。
+新網站的設定來源是 `.env`，不使用舊 `config.py` 的 IP／密碼。原程式預設 IP 是範例，不代表目前 NTUEE Makerspace 的實際設備清單。

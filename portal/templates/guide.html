@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}使用指南{% endblock %}
 {% block content %}
-<div class="page-title"><p class="eyebrow">BEFORE YOUR EXPERIMENT</p><h1>使用指南</h1><p class="lead">先了解借用流程，讓實驗順利進行。</p></div>
+<div class="page-title"><p class="eyebrow">BEFORE YOUR EXPERIMENT</p><h1>使用指南</h1><p class="lead">由 NTUEE Makerspace 管理，供同學借用 FPGA 並安排實驗時段。</p></div>
 <div class="guide-layout"><aside class="guide-nav"><a href="#borrowing">借用與預約</a><a href="#workspace">使用工作空間</a><a href="#files">保存檔案</a><a href="#rules">借用須知</a><a href="#help">需要協助</a></aside><div class="guide-content">
 <section id="borrowing"><span class="eyebrow">01 / BOOKING</span><h2>借用與預約</h2><p>建立網站帳號並登入後，從設備總覽選擇板子。立即借用會由排程準備設備；預約則在開始時間到達後自動啟用。</p><ul><li>每個帳號同時只能有一筆借用或預約。</li><li>可預約未來 14 天內的時段，使用時間以 15 分鐘為單位。</li><li>每台設備的借用時限會顯示在設備頁面。</li><li>借用需避開每日維護時段，且不能與其他預約重疊。</li><li>預約的結束時間固定；若設備準備延遲，使用時長不會自動延長。</li></ul></section>
 <section id="workspace"><span class="eyebrow">02 / WORKSPACE</span><h2>使用工作空間</h2><p>在「我的借用」開啟當次借用，查看剩餘時間。設備準備完成後，點選「開啟 Jupyter」即可使用，不需再次登入。PYNQ-Z2 與 KV260 都透過網站連線。Notebook 程式在板子上執行，可搭配課程提供的 FPGA 設計檔進行實驗。</p><div class="notice info">標示「模擬設備」的板子僅供體驗借用流程，不會執行 FPGA 程式，也沒有 Jupyter 連線。</div><p>PYNQ-Z2 與 KV260 的設計檔不能互用。若要測試連線，建立 Python 3 Notebook，執行 <code>import socket; print(socket.gethostname())</code>。如果作業需要自己撰寫 Verilog／VHDL，請依教材使用 Vivado 產生相容的 bitstream，再上傳所需檔案。</p></section>
 <section id="files"><span class="eyebrow">03 / YOUR FILES</span><h2>保存檔案，再歸還設備</h2><p>請在到期或歸還前下載 Notebook、程式與實驗結果。網站依帳號在各板子保留個人工作目錄，但不提供檔案備份。到期或歸還會終止執行中的程式與終端機。</p><p>完成後可提前歸還，讓其他同學使用。設備會先顯示「回收中」，關閉工作空間後才重新開放。</p></section>
-<section id="rules"><span class="eyebrow">04 / LAB ETIQUETTE</span><h2>借用須知</h2><ul><li>使用自己的帳號，不分享網站或工作空間密碼。</li><li>只在自己的借用時段操作設備。</li><li>不得更改系統帳號、網路設定或干擾設備管理服務。</li><li>實驗需依課程與板型限制操作，不任意連接外部電路。</li><li>管理員可為維護或處理異常而提前結束借用。</li></ul></section>
-<section id="help"><span class="eyebrow">05 / SUPPORT</span><h2>需要協助</h2><p>忘記密碼、設備異常或工作空間無法連線時，請聯絡實驗室管理員或課程助教，並提供設備名稱與借用編號。</p><p>註冊信箱目前不會進行郵件驗證，也不會寄送預約通知。請以「我的借用」顯示的狀態為準。</p></section>
+<section id="rules"><span class="eyebrow">04 / MAKERSPACE GUIDELINES</span><h2>借用須知</h2><ul><li>使用自己的帳號，不分享網站或工作空間密碼。</li><li>只在自己的借用時段操作設備。</li><li>不得更改系統帳號、網路設定或干擾設備管理服務。</li><li>實驗需依課程與板型限制操作，不任意連接外部電路。</li><li>管理員可為維護或處理異常而提前結束借用。</li></ul></section>
+<section id="help"><span class="eyebrow">05 / SUPPORT</span><h2>需要協助</h2><p>忘記密碼、設備異常或工作空間無法連線時，請聯絡 NTUEE Makerspace 管理員，並提供設備名稱與借用編號。</p><p>註冊信箱目前不會進行郵件驗證，也不會寄送預約通知。請以「我的借用」顯示的狀態為準。</p></section>
 </div></div>
 {% endblock %}
