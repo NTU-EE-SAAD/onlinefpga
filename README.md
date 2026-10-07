@@ -156,6 +156,8 @@ sudo bash scripts/install-production.sh \
 
 安裝腳本不修改網卡、預設路由、SSH、router 或防火牆。校網／上游 NAT 仍需將 443 送到此 server，HTTP-01 另需 80。備份保存在 Git 忽略的 `instance/production-backup-*`；失敗時還原原 `.env`、Gunicorn override 與本 vhost，保留安裝的系統套件與已取得的憑證。正式設定成功前，網站維持原來的部署方式；成功後使用 HTTPS 網域登入。
 
+若 Nginx、Certbot 與 CA 憑證套件皆已配置完成，腳本會跳過 `apt`，避免重新觸發系統其他未完成的套件安裝。例如首次安裝因 NVIDIA DKMS 編譯失敗而中斷，但以上三項已安裝成功時，可直接重新執行部署腳本；NVIDIA 套件問題需另外處理。
+
 可使用已安裝的 Nginx，於隔離環境驗證設定，不需 root 或實體 FPGA：
 
 ```bash

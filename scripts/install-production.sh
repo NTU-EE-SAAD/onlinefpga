@@ -49,6 +49,7 @@ fi
 portal_app_changed=false
 portal_nginx_changed=false
 portal_done=false
+portal_stage='checking prerequisites'
 user_service() {
   runuser -u "$portal_user" -- env XDG_RUNTIME_DIR="/run/user/$portal_uid" \
     DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$portal_uid/bus" systemctl --user "$@"
@@ -56,7 +57,7 @@ user_service() {
 rollback() {
   portal_exit=$?
   if [[ "$portal_done" != true && $portal_exit -ne 0 ]]; then
-    echo "Setup failed; restoring the website's previous configuration." >&2
+    echo "Setup failed during $portal_stage; restoring the website's previous configuration." >&2
     if [[ "$portal_app_changed" == true ]]; then
       if [[ -f "$portal_backup/.env" ]]; then
         install -o "$portal_user" -g "$portal_user" -m 600 "$portal_backup/.env" "$portal_root/.env"
@@ -75,15 +76,31 @@ rollback() {
       nginx -t && systemctl reload nginx || true
     fi
     echo "Backup: $portal_backup" >&2
-    echo 'If certificate validation failed, check public TCP 80/NAT and the Cloudflare origin connection.' >&2
+    if [[ "$portal_stage" == 'checking public HTTP challenge' || "$portal_stage" == 'issuing certificate' ]]; then
+      echo 'Check public TCP 80/NAT and the Cloudflare origin connection.' >&2
+    fi
   fi
 }
 trap rollback EXIT
 exec 9>/run/lock/onlinefpga-production.lock
 flock -n 9 || { echo 'Another deployment is running.' >&2; exit 1; }
 user_service is-active --quiet onlinefpga-web onlinefpga-scheduler
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y nginx certbot ca-certificates
+portal_stage='installing required packages'
+portal_missing_packages=()
+for portal_package in nginx certbot ca-certificates; do
+  if [[ "$(dpkg-query -W -f='${Status}' "$portal_package" 2>/dev/null || true)" != 'install ok installed' ]]; then
+    portal_missing_packages+=("$portal_package")
+  fi
+done
+if [[ ${#portal_missing_packages[@]} -gt 0 ]]; then
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y "${portal_missing_packages[@]}"
+else
+  echo 'Required packages are already configured; skipping apt.'
+fi
+command -v nginx >/dev/null
+command -v certbot >/dev/null
+portal_stage='preparing HTTP validation'
 install -d -m 755 /var/lib/onlinefpga-acme/.well-known/acme-challenge
 
 if [[ -z "$portal_certificate" ]]; then
@@ -99,6 +116,7 @@ if [[ -z "$portal_certificate" ]]; then
     portal_probe="onlinefpga-$(openssl rand -hex 12)"
     printf '%s' "$portal_probe" > "/var/lib/onlinefpga-acme/.well-known/acme-challenge/$portal_probe"
     chmod 644 "/var/lib/onlinefpga-acme/.well-known/acme-challenge/$portal_probe"
+    portal_stage='checking public HTTP challenge'
     portal_probe_response=$(curl --silent --show-error --fail --max-time 20 \
       "http://$portal_domain/.well-known/acme-challenge/$portal_probe") || {
       rm -f "/var/lib/onlinefpga-acme/.well-known/acme-challenge/$portal_probe"
@@ -108,6 +126,7 @@ if [[ -z "$portal_certificate" ]]; then
     [[ "$portal_probe_response" == "$portal_probe" ]] || { echo 'Domain reaches a different origin.' >&2; exit 1; }
     portal_contact=(--register-unsafely-without-email)
     if [[ -n "$portal_email" ]]; then portal_contact=(--email "$portal_email"); fi
+    portal_stage='issuing certificate'
     certbot certonly --non-interactive --agree-tos "${portal_contact[@]}" \
       --webroot -w /var/lib/onlinefpga-acme --cert-name "$portal_domain" -d "$portal_domain"
   fi
@@ -116,6 +135,7 @@ if [[ -z "$portal_certificate" ]]; then
   chmod 755 /etc/letsencrypt/renewal-hooks/deploy/onlinefpga-nginx
   systemctl enable --now certbot.timer
 fi
+portal_stage='validating certificate and HTTPS configuration'
 openssl x509 -in "$portal_certificate" -noout -checkhost "$portal_domain" | grep -q 'does match'
 openssl x509 -in "$portal_certificate" -noout -checkend 0 >/dev/null
 portal_cert_pub=$(openssl x509 -in "$portal_certificate" -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum)
@@ -135,6 +155,7 @@ PY
 ln -sfn "$portal_site" "$portal_enabled"
 nginx -t
 portal_app_changed=true
+portal_stage='configuring production services'
 install -d -o "$portal_user" -g "$portal_user" -m 700 "$(dirname "$portal_override")"
 cat > "$portal_override" <<EOF
 [Service]
@@ -160,6 +181,7 @@ user_service restart onlinefpga-web onlinefpga-scheduler
 systemctl enable --now nginx
 systemctl reload nginx
 portal_ready=false
+portal_stage='checking production health'
 for portal_try in {1..30}; do
   if curl --silent --fail http://127.0.0.1:8000/healthz >/dev/null; then portal_ready=true; break; fi
   sleep 1
