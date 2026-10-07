@@ -1,10 +1,12 @@
-"""Simulation by default. Optional SSH adapter reuses reset_pynq.py for PYNQ 2.7."""
+"""Non-destructive session control for PYNQ-Z2 and PYNQ-enabled Kria KV260."""
+import json
 import secrets
 import shlex
-import json
+import stat
 from pathlib import Path
 
 from flask import current_app
+from . import service
 
 
 class SimulatedDriver:
@@ -17,54 +19,57 @@ class SimulatedDriver:
 
 class PynqDriver:
     def prepare(self, device, rental):
-        self.reset(device, rental["access_secret"])
+        self.control(device, rental, "prepare")
 
     def release(self, device, rental):
-        self.reset(device, secrets.token_urlsafe(24))
+        self.control(device, rental, "release")
 
-    def reset(self, device, password):
+    def control(self, device, rental, action):
         import paramiko
         config = current_app.config
         if not config["ENABLE_HARDWARE"]:
             raise RuntimeError("Physical hardware is disabled")
-        if not device["host"] or not config["FPGA_SSH_KEY"] or not config["FPGA_KNOWN_HOSTS"] or not config["FPGA_SUDO_PASSWORD"]:
-            raise RuntimeError("SSH host, key, known_hosts and board sudo credentials must be configured")
+        if not device["host"] or not config["FPGA_KNOWN_HOSTS"] or not config["FPGA_CREDENTIALS"]:
+            raise RuntimeError("Board host, known_hosts and credentials must be configured")
+        credentials_path = Path(config["FPGA_CREDENTIALS"])
+        if stat.S_IMODE(credentials_path.stat().st_mode) & 0o077:
+            raise RuntimeError("Board credentials file must have mode 600")
+        creds = json.loads(credentials_path.read_text()).get(device["slug"])
+        if not creds or not creds.get("sudo_password"):
+            raise RuntimeError("Device credentials must be configured")
         client = paramiko.SSHClient()
         client.load_host_keys(config["FPGA_KNOWN_HOSTS"])
         client.set_missing_host_key_policy(paramiko.RejectPolicy())
+        folder = None
         try:
             client.connect(device["host"], port=device["ssh_port"], username=device["ssh_user"],
-                           key_filename=config["FPGA_SSH_KEY"], timeout=8, banner_timeout=8,
+                           key_filename=config["FPGA_SSH_KEY"] or None,
+                           password=creds.get("ssh_password"), timeout=8, banner_timeout=8,
                            auth_timeout=8, allow_agent=False, look_for_keys=False)
-            # Legacy script cleans Notebook files and restarts Jupyter: PYNQ 2.7 only.
-            # Root-owned staging is avoided. Each operation uses a private random directory.
-            script = Path(__file__).resolve().parent.parent / "reset_pynq.py"
             with client.open_sftp() as sftp:
-                home = sftp.normalize(".")
-                folder = home + "/.onlinefpga-" + secrets.token_hex(8)
+                folder = sftp.normalize(".") + "/.onlinefpga-" + secrets.token_hex(8)
                 sftp.mkdir(folder, mode=0o700)
-                sftp.put(str(script), folder + "/reset_pynq.py")
-            command = (f"cd {shlex.quote(folder)} && "
-                       "/usr/local/share/pynq-venv/bin/python3 reset_pynq.py "
-                       "--stdin pynq")
-            stdin, stdout, _ = client.exec_command(command, timeout=90)
-            stdin.write(json.dumps({"password": password, "sudo_password": config["FPGA_SUDO_PASSWORD"]}) + "\n")
+                sftp.put(str(Path(__file__).resolve().parent.parent / "scripts/board_session.py"),
+                         folder + "/board_session.py")
+            command = "sudo -S -p '' /usr/bin/python3 " + shlex.quote(folder + "/board_session.py")
+            stdin, stdout, stderr = client.exec_command(command, timeout=115)
+            stdin.write(creds["sudo_password"] + "\n")
+            stdin.write(json.dumps({"action": action, "rental_id": rental["id"],
+                                    "user_id": rental["user_id"], "token": rental["access_secret"],
+                                    "model": device["model"], "lease_seconds": max(0, rental["ends_at"] - service.now())}) + "\n")
             stdin.flush()
             stdin.channel.shutdown_write()
             output = stdout.read(65536).decode(errors="replace")
-            code = stdout.channel.recv_exit_status()
-            if code != 0 or "Notebook reset completed" not in output:
-                raise RuntimeError("PYNQ reset failed")
-            # Verify new credentials against the local Notebook service over SSH.
-            _, check, _ = client.exec_command(
-                "curl --fail --silent --max-time 8 http://127.0.0.1:9090/login -o /dev/null", timeout=10)
-            if check.channel.recv_exit_status() != 0:
-                raise RuntimeError("Jupyter health check failed")
-            with client.open_sftp() as sftp:
-                for name in sftp.listdir(folder):
-                    sftp.remove(folder + "/" + name)
-                sftp.rmdir(folder)
+            if stdout.channel.recv_exit_status() != 0 or ("Session ready" if action == "prepare" else "Session released") not in output:
+                raise RuntimeError("Board session operation failed; inspect the board service journal")
         finally:
+            if folder:
+                try:
+                    with client.open_sftp() as sftp:
+                        sftp.remove(folder + "/board_session.py")
+                        sftp.rmdir(folder)
+                except (OSError, paramiko.SSHException):
+                    pass
             client.close()
 
 

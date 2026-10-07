@@ -56,3 +56,17 @@ def test_hardware_driver_requires_credentials_before_network(app,monkeypatch):
     monkeypatch.setattr(paramiko,"SSHClient",lambda:pytest.fail("Must not attempt SSH"))
     with app.app_context(), pytest.raises(RuntimeError,match="configured"):
         PynqDriver().prepare({"driver":"pynq","host":"192.0.2.1"},{"access_secret":"secret"})
+
+
+def test_admin_can_add_kv260_and_cli_sets_model(client, app):
+    data=sign_in(client,4)
+    client.post('/admin/devices',data={**data,'slug':'kria-01','name':'Kria','model':'KV260'})
+    result=app.test_cli_runner().invoke(args=['configure-device','kria-01','--host','192.0.2.2',
+                                            '--ssh-user','ubuntu','--model','KV260','--jupyter-url','http://192.0.2.2:9090'])
+    assert result.exit_code==0, result.output
+    with app.app_context():
+        row=get_db().execute("SELECT * FROM devices WHERE slug='kria-01'").fetchone()
+        assert row['model']=='KV260' and row['maintenance']==1 and row['driver']=='pynq'
+    bad=app.test_cli_runner().invoke(args=['configure-device','kria-01','--host','192.0.2.2',
+                                          '--jupyter-url','http://other.example:9090/escape'])
+    assert bad.exit_code!=0

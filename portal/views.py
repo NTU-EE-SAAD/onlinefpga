@@ -44,7 +44,10 @@ def authentication():
             g.user = user
         else:
             session.clear()
-    if request.method == "POST":
+    if request.path.startswith("/lab/"):
+        # Notebook uses its own API. The proxy verifies the session, rental and Origin.
+        request.max_content_length = 16 * 1024 * 1024
+    elif request.method == "POST":
         submitted = request.form.get("csrf_token", request.headers.get("X-CSRF-Token", ""))
         expected = session.get("csrf", "")
         if not expected or not hmac.compare_digest(submitted.encode("utf-8"), expected.encode("utf-8")):
@@ -291,11 +294,14 @@ def add_device():
     try:
         slug = request.form.get("slug", "").strip().lower()
         name = request.form.get("name", "").strip()
+        model = request.form.get("model", "PYNQ-Z2")
         if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,39}", slug) or not 2 <= len(name) <= 60:
             raise service.RuleError("代號需為 2–40 個小寫英文字母、數字或連字號；名稱需為 2–60 字。")
         with transaction() as conn:
-            conn.execute("INSERT INTO devices(slug,name,model,description) VALUES(?,?,'PYNQ-Z2',?)",
-                         (slug, name, "適合數位邏輯、Python 與 FPGA 加速實驗。"))
+            if model not in ("PYNQ-Z2", "KV260"):
+                raise service.RuleError("請選擇支援的板型。")
+            conn.execute("INSERT INTO devices(slug,name,model,description) VALUES(?,?,?,?)",
+                         (slug, name, model, "適合數位邏輯、Python 與 FPGA 加速實驗。"))
             service.event(conn, g.user["id"], None, "device_add", slug)
         flash("已新增模擬設備。之後可透過 server CLI 設定實體連線。", "success")
     except sqlite3.IntegrityError:

@@ -123,12 +123,14 @@ def test_expired_live_rental_hides_credentials(client,app,monkeypatch):
         get_db().execute("UPDATE devices SET driver='pynq',jupyter_url='http://board.example:9090' WHERE id=1")
         secret = get_db().execute("SELECT access_secret FROM rentals WHERE id=?",(rental,)).fetchone()[0]
     page = client.get(f"/rentals/{rental}").get_data(as_text=True)
-    assert secret in page
+    assert secret not in page
+    assert f'/lab/{rental}/tree' in page
     old_now = service.now()
     monkeypatch.setattr(service,"now",lambda:old_now+901)
     page = client.get(f"/rentals/{rental}").get_data(as_text=True)
     assert secret not in page
     assert "http://board.example:9090" not in page
+    assert f'/lab/{rental}/tree' not in page
 
 
 def test_health_tracks_worker(client,app):

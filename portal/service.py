@@ -196,6 +196,7 @@ def process_jobs(state, clock, factory):
             if not row:
                 continue
             conn.execute("UPDATE rentals SET claimed_at=?,attempts=attempts+1 WHERE id=?", (clock, row["id"]))
+            conn.execute("UPDATE worker_state SET heartbeat=? WHERE id=1", (max(clock, now()),))
             device = dict(conn.execute("SELECT * FROM devices WHERE id=?", (row["device_id"],)).fetchone())
             rental = dict(row)
         # Never hold the DB write lock while doing network I/O.
@@ -216,6 +217,7 @@ def process_jobs(state, clock, factory):
                 event(conn, rental["user_id"], rental["id"], "hardware_failed", state, clock)
             continue
         with transaction() as conn:
+            conn.execute("UPDATE worker_state SET heartbeat=? WHERE id=1", (max(clock, now()),))
             if state == "preparing":
                 # A long provisioning operation must never grant an expired lease.
                 current = max(clock, now())

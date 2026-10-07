@@ -22,6 +22,6 @@ cleanup() {
   wait || true
 }
 trap cleanup EXIT INT TERM
-.venv/bin/gunicorn --bind "${PORTAL_BIND:-0.0.0.0:8000}" --workers 2 --timeout 30 'portal:create_app()' &
+.venv/bin/gunicorn --bind "${PORTAL_BIND:-0.0.0.0:8000}" --workers 2 --worker-class gthread --threads 32 --timeout 90 'portal:create_app()' &
 portal_web_pid=$!
 wait -n "$portal_worker_pid" "$portal_web_pid"

@@ -69,11 +69,13 @@ def init_app(app):
     @click.option("--ssh-port", default=22, type=click.IntRange(1, 65535))
     @click.option("--ssh-user", default="xilinx")
     @click.option("--jupyter-url", required=True)
-    def configure_device(slug, host, ssh_port, ssh_user, jupyter_url):
+    @click.option("--model", type=click.Choice(["PYNQ-Z2", "KV260"]))
+    def configure_device(slug, host, ssh_port, ssh_user, jupyter_url, model):
         """Register a physical PYNQ; remains under maintenance until explicitly enabled."""
         parts = urlsplit(jupyter_url)
-        if parts.scheme not in ("http", "https") or not parts.hostname or parts.username or parts.password:
-            raise click.ClickException("Jupyter URL 必須是有效的 http/https 網址，不可含帳密。")
+        if (parts.scheme not in ("http", "https") or parts.hostname != host or parts.username or parts.password
+                or parts.path not in ("", "/") or parts.query or parts.fragment):
+            raise click.ClickException("Jupyter URL 需為與 SSH host 相同的 http/https 網址，不可含帳密、路徑或查詢參數。")
         with transaction() as conn:
             row = conn.execute("SELECT * FROM devices WHERE slug=?", (slug,)).fetchone()
             if not row:
@@ -82,6 +84,8 @@ def init_app(app):
                 raise click.ClickException("設備仍有借用或預約，請先結束所有紀錄。")
             conn.execute("UPDATE devices SET driver='pynq',host=?,ssh_port=?,ssh_user=?,jupyter_url=?,maintenance=1 WHERE id=?",
                          (host, ssh_port, ssh_user, jupyter_url, row["id"]))
+            if model:
+                conn.execute("UPDATE devices SET model=? WHERE id=?", (model, row["id"]))
         click.echo("實體設備已登記且維持維護中；此命令不會連線到 FPGA。")
 
     @app.cli.command("backup-db")

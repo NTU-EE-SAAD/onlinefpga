@@ -4,7 +4,7 @@ import secrets
 from datetime import timedelta
 from pathlib import Path
 
-from flask import Flask, session
+from flask import Flask, session, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -27,7 +27,8 @@ def create_app(test_config=None):
         ENABLE_HARDWARE=os.environ.get("ENABLE_HARDWARE", "false").lower() == "true",
         FPGA_SSH_KEY=os.environ.get("FPGA_SSH_KEY", ""),
         FPGA_KNOWN_HOSTS=os.environ.get("FPGA_KNOWN_HOSTS", ""),
-        FPGA_SUDO_PASSWORD=os.environ.get("FPGA_SUDO_PASSWORD", ""),
+        FPGA_CREDENTIALS=os.environ.get("FPGA_CREDENTIALS", ""),
+        SOCK_SERVER_OPTIONS={"ping_interval": 25, "max_message_size": 16 * 1024 * 1024},
     )
     if test_config:
         app.config.update(test_config)
@@ -52,6 +53,8 @@ def create_app(test_config=None):
     db.init_app(app)
     app.register_blueprint(views.bp)
     cli.init_app(app)
+    from .workspace import init_app as init_workspace
+    init_workspace(app)
 
     @app.context_processor
     def helpers():
@@ -71,6 +74,14 @@ def create_app(test_config=None):
             "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
             "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         )
+        if request.path.startswith("/lab/"):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+                "font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
+                "base-uri 'self'; form-action 'self'"
+            )
+            response.headers["Cache-Control"] = "no-store"
         if response.mimetype == "text/html" or response.mimetype == "application/json":
             response.headers["Cache-Control"] = "no-store"
         return response
