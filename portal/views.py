@@ -8,8 +8,9 @@ from functools import wraps
 from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from .db import get_db, transaction
+from .db import get_db, transaction, next_user_id
 from . import service
+from .student_ids import validate_student_id, STUDENT_ID_PATTERN
 
 bp = Blueprint("web", __name__)
 
@@ -52,6 +53,11 @@ def authentication():
         expected = session.get("csrf", "")
         if not expected or not hmac.compare_digest(submitted.encode("utf-8"), expected.encode("utf-8")):
             abort(400, description="操作已過期，請重新整理頁面後再試。")
+    if g.user and g.user["role"] == "student" and not g.user["student_id"]:
+        if request.endpoint not in ("web.account", "web.logout", "static", "web.health", "web.guide"):
+            if request.path.startswith(("/api/", "/lab/")):
+                abort(403, description="請先在帳號設定補填學號。")
+            return redirect(url_for("web.account"))
 
 
 def limited(scope, maximum=10, seconds=900, identity=""):
@@ -95,6 +101,7 @@ def register():
         name = request.form.get("name", "").strip()
         password = request.form.get("password", "")
         try:
+            student_id = validate_student_id(request.form.get("student_id", ""))
             if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or len(email) > 254:
                 raise service.RuleError("請輸入有效的電子郵件。")
             if not 2 <= len(name) <= 60:
@@ -106,16 +113,16 @@ def register():
                 raise service.RuleError("請先閱讀並同意借用須知。")
             hashed = generate_password_hash(password)
             with transaction() as conn:
-                cursor = conn.execute("INSERT INTO users(email,name,password_hash,created_at) VALUES(?,?,?,?)",
-                                      (email, name, hashed, service.now()))
+                cursor = conn.execute("INSERT INTO users(id,student_id,email,name,password_hash,created_at) VALUES(?,?,?,?,?,?)",
+                                      (next_user_id(conn), student_id, email, name, hashed, service.now()))
                 service.event(conn, cursor.lastrowid, None, "register")
             flash("帳號已建立，請登入開始借用。", "success")
             return redirect(url_for("web.login"))
         except sqlite3.IntegrityError:
-            flash("此電子郵件已註冊，請登入或聯絡管理員重設密碼。", "error")
+            flash("此學號或電子郵件已註冊，請登入；舊帳號可先以原信箱登入。", "error")
         except service.RuleError as exc:
             flash(str(exc), "error")
-    return render_template("auth.html", registering=True)
+    return render_template("auth.html", registering=True, student_id_pattern=STUDENT_ID_PATTERN)
 
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -124,9 +131,15 @@ def login():
         return redirect(url_for("web.home"))
     if request.method == "POST":
         limited("login", maximum=100)
-        email = request.form.get("email", "").strip().lower()
-        limited("login-account", maximum=10, identity=email)
-        user = get_db().execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        identifier = request.form.get("identifier", request.form.get("email", "")).strip()
+        limited("login-account", maximum=10, identity=identifier.lower())
+        if "@" in identifier:
+            # Email login is retained only for legacy accounts and standalone admins.
+            user = get_db().execute("SELECT * FROM users WHERE email=? AND student_id IS NULL",
+                                    (identifier.lower(),)).fetchone()
+        else:
+            user = get_db().execute("SELECT * FROM users WHERE student_id=? COLLATE NOCASE",
+                                    (identifier,)).fetchone()
         password = request.form.get("password", "")
         # Perform a password hash check for nonexistent accounts as well.
         if "DUMMY_HASH" not in current_app.config:
@@ -136,8 +149,9 @@ def login():
             session.clear()
             session.update(user_id=user["id"], version=user["session_version"], csrf=secrets.token_urlsafe(32))
             session.permanent = True
-            return redirect(url_for("web.home"))
-        flash("電子郵件或密碼不正確，或帳號已停用。", "error")
+            target = "web.account" if user["role"] == "student" and not user["student_id"] else "web.home"
+            return redirect(url_for(target))
+        flash("學號或密碼不正確，或帳號已停用。舊帳號尚未補填學號時可使用原信箱登入。", "error")
     return render_template("auth.html", registering=False)
 
 
@@ -209,6 +223,28 @@ def return_rental(rental_id):
 @login_required
 def account():
     if request.method == "POST":
+        if request.form.get("action") == "bind_student_id":
+            limited("bind-student-id", maximum=10, identity=str(g.user["id"]))
+            try:
+                if g.user["student_id"]:
+                    raise service.RuleError("學號已設定，若需更正請聯絡管理員。")
+                if not check_password_hash(g.user["password_hash"], request.form.get("current_password", "")):
+                    raise service.RuleError("目前密碼不正確。")
+                student_id = validate_student_id(request.form.get("student_id", ""))
+                with transaction() as conn:
+                    cursor = conn.execute("UPDATE users SET student_id=?,session_version=session_version+1 "
+                                          "WHERE id=? AND student_id IS NULL", (student_id, g.user["id"]))
+                    if not cursor.rowcount:
+                        raise service.RuleError("學號已設定，請重新登入。")
+                    service.event(conn, g.user["id"], None, "student_id_bind")
+                session.clear()
+                flash("學號已設定，請改用學號登入。", "success")
+                return redirect(url_for("web.login"))
+            except sqlite3.IntegrityError:
+                flash("此學號已被使用，請確認或聯絡管理員。", "error")
+            except service.RuleError as exc:
+                flash(str(exc), "error")
+            return render_template("account.html", student_id_pattern=STUDENT_ID_PATTERN)
         limited("password", maximum=10, identity=str(g.user["id"]))
         try:
             if not check_password_hash(g.user["password_hash"], request.form.get("current_password", "")):
@@ -226,7 +262,7 @@ def account():
             return redirect(url_for("web.login"))
         except service.RuleError as exc:
             flash(str(exc), "error")
-    return render_template("account.html")
+    return render_template("account.html", student_id_pattern=STUDENT_ID_PATTERN)
 
 
 @bp.get("/guide")
@@ -260,7 +296,7 @@ def admin():
     conn = get_db()
     return render_template("admin.html", devices=service.devices_with_status(),
                            rentals=service.rentals_for(limit=100),
-                           users=conn.execute("SELECT id,name,email,role,enabled,created_at FROM users ORDER BY id DESC LIMIT 200").fetchall(),
+                           users=conn.execute("SELECT id,name,student_id,email,role,enabled,created_at FROM users ORDER BY id DESC LIMIT 200").fetchall(),
                            events=conn.execute("SELECT e.*,u.email FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 40").fetchall())
 
 

@@ -61,6 +61,7 @@ def main():
                     page.set_viewport_size({"width": 1440, "height": 1000})
 
                     page.goto(base + "/register")
+                    page.get_by_label("學號", exact=True).fill("b15901001")
                     page.get_by_label("姓名", exact=True).fill("測試同學")
                     page.get_by_label("電子郵件", exact=True).fill("browser@example.com")
                     page.get_by_label("密碼", exact=True).fill("browser-password-1234")
@@ -68,7 +69,7 @@ def main():
                     page.locator("input[name=terms]").check()
                     page.get_by_role("button", name="建立帳號").click()
                     expect(page).to_have_url(base + "/login")
-                    page.get_by_label("電子郵件", exact=True).fill("browser@example.com")
+                    page.get_by_label("學號", exact=True).fill("B15901001")
                     page.get_by_label("密碼", exact=True).fill("browser-password-1234")
                     page.get_by_role("button", name="登入", exact=True).click()
                     expect(page).to_have_url(base + "/")
@@ -97,7 +98,7 @@ def main():
 
                     subprocess.run(command + ["promote-admin", "browser@example.com"], cwd=root, env=env, check=True, capture_output=True)
                     page.goto(base + "/login")
-                    page.get_by_label("電子郵件", exact=True).fill("browser@example.com")
+                    page.get_by_label("學號", exact=True).fill("B15901001")
                     page.get_by_label("密碼", exact=True).fill("browser-password-1234")
                     page.get_by_role("button", name="登入", exact=True).click()
                     page.goto(base + "/admin")

@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}帳號設定{% endblock %}
 {% block content %}
-<div class="page-title"><p class="eyebrow">ACCOUNT</p><h1>帳號設定</h1><p class="lead">{{ g.user.name }} · {{ g.user.email }}</p></div>
+<div class="page-title"><p class="eyebrow">ACCOUNT</p><h1>帳號設定</h1><p class="lead">{{ g.user.name }}{% if g.user.student_id %} · {{ g.user.student_id }}{% endif %} · {{ g.user.email }}</p></div>
+{% if not g.user.student_id %}
+<section class="panel narrow-panel"><h2>設定學號</h2><p class="muted">學生帳號需設定臺大學號才能借用。設定後請使用學號登入。</p><form method="post" class="stack-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="bind_student_id"><label>學號<input name="student_id" autocomplete="username" required minlength="9" maxlength="9" pattern="{{ student_id_pattern }}" placeholder="B15901001" spellcheck="false"></label><label>目前密碼<input name="current_password" type="password" autocomplete="current-password" required maxlength="128"></label><button class="button" type="submit">設定學號 →</button></form></section>
+{% endif %}
 <section class="panel narrow-panel"><h2>更新密碼</h2><p class="muted">更新後，所有裝置都需要重新登入。</p><form method="post" class="stack-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>目前密碼<input name="current_password" type="password" autocomplete="current-password" required maxlength="128"></label><label>新密碼<input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label><label>確認新密碼<input name="password_confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label><button class="button" type="submit">更新密碼 →</button></form></section>
 {% endblock %}

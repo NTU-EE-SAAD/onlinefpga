@@ -1,11 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}{{ '建立帳號' if registering else '登入' }}{% endblock %}
 {% block content %}
-<div class="auth-layout"><section class="auth-intro"><p class="eyebrow">FPGA RESERVATION / ACCESS</p><h1>{{ '你的實驗，\n從這裡開始。' if registering else '歡迎回到\n你的工作空間。' }}</h1><p>一個帳號，管理設備借用與實驗時段。</p><div class="auth-detail"><span class="line-icon" aria-hidden="true">↗</span><p>自主註冊，無需學校登入。<br>使用常用信箱建立你的帳號。</p></div></section>
-<section class="auth-panel"><h2>{{ '建立帳號' if registering else '登入帳號' }}</h2><p class="muted">{{ '填寫以下資料，即可開始安排實驗。' if registering else '輸入電子郵件與密碼。' }}</p>
+<div class="auth-layout"><section class="auth-intro"><p class="eyebrow">FPGA RESERVATION / ACCESS</p><h1>{{ '你的實驗，\n從這裡開始。' if registering else '歡迎回到\n你的工作空間。' }}</h1><p>一個帳號，管理設備借用與實驗時段。</p><div class="auth-detail"><span class="line-icon" aria-hidden="true">↗</span><p>使用臺大學號註冊。<br>信箱用於帳號聯絡，無需學校登入。</p></div></section>
+<section class="auth-panel"><h2>{{ '建立帳號' if registering else '登入帳號' }}</h2><p class="muted">{{ '填寫學號、姓名與聯絡信箱，即可建立帳號。' if registering else '輸入學號與密碼。' }}</p>
 <form method="post" class="stack-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-{% if registering %}<label>姓名<input name="name" autocomplete="name" required minlength="2" maxlength="60" value="{{ request.form.get('name','') }}" placeholder="你的姓名"></label>{% endif %}
+{% if registering %}
+<label>學號<input name="student_id" autocomplete="username" required minlength="9" maxlength="9" pattern="{{ student_id_pattern }}" value="{{ request.form.get('student_id','') }}" placeholder="B15901001" spellcheck="false" autocapitalize="characters" aria-describedby="student-id-help"></label>
+<p id="student-id-help" class="small muted">限 B、R、D 開頭的臺大 9 碼一般生學號，英文字母大小寫皆可。</p>
+<label>姓名<input name="name" autocomplete="name" required minlength="2" maxlength="60" value="{{ request.form.get('name','') }}" placeholder="你的姓名"></label>
 <label>電子郵件<input type="email" name="email" autocomplete="email" required maxlength="254" value="{{ request.form.get('email','') }}" placeholder="you@example.com"></label>
+{% else %}<label>學號<input name="identifier" autocomplete="username" required maxlength="254" value="{{ request.form.get('identifier','') }}" placeholder="輸入你的學號" spellcheck="false"></label>{% endif %}
 <label>密碼<input type="password" name="password" autocomplete="{{ 'new-password' if registering else 'current-password' }}" required {% if registering %}minlength="12"{% endif %} maxlength="128" placeholder="{{ '至少 12 個字元' if registering else '輸入密碼' }}"></label>
 {% if registering %}<label>確認密碼<input type="password" name="password_confirm" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="再輸入一次密碼"></label><label class="checkbox-label"><input type="checkbox" name="terms" value="yes" required><span>我已閱讀並同意<a href="{{ url_for('web.guide') }}" target="_blank" rel="noopener">借用須知</a>。</span></label>{% endif %}
 <button class="button button-full" type="submit">{{ '建立帳號' if registering else '登入' }} <span aria-hidden="true">→</span></button>

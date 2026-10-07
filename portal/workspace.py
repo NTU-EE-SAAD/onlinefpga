@@ -18,13 +18,14 @@ def rental_access(rental_id):
     if not g.user:
         abort(401)
     row = get_db().execute(
-        "SELECT r.*,d.driver,d.jupyter_url,u.enabled,u.session_version "
+        "SELECT r.*,d.driver,d.jupyter_url,u.enabled,u.session_version,u.student_id,u.role "
         "FROM rentals r JOIN devices d ON d.id=r.device_id JOIN users u ON u.id=r.user_id "
         "WHERE r.id=? AND r.user_id=?", (rental_id, g.user["id"])).fetchone()
     if not row:
         abort(404)
     if (row["status"] != "active" or row["ends_at"] <= service.now()
             or not row["enabled"] or row["session_version"] != g.user["session_version"]
+            or (row["role"] == "student" and not row["student_id"])
             or row["driver"] != "pynq" or not row["access_secret"]):
         abort(403)
     return row

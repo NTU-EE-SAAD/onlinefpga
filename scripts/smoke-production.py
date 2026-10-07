@@ -53,6 +53,7 @@ def main():
             conn=get_db()
             conn.execute('INSERT INTO users(id,email,name,password_hash,created_at) VALUES(?,?,?,?,?)',
                          (1,'production-test@example.com','部署測試',generate_password_hash(password),service.now()))
+            conn.execute("UPDATE users SET student_id='B15901001' WHERE id=1")
             rental=service.book(1,1,15)
             service.tick()
             secret=conn.execute('SELECT access_secret FROM rentals WHERE id=?',(rental,)).fetchone()[0]
@@ -109,7 +110,7 @@ def main():
                 browser=p.chromium.launch(args=['--host-resolver-rules=MAP mks.ntuee.org 127.0.0.1','--no-proxy-server'])
                 context=browser.new_context(ignore_https_errors=True)
                 page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-                page.goto(base+'/login');page.get_by_label('電子郵件',exact=True).fill('production-test@example.com')
+                page.goto(base+'/login');page.get_by_label('學號',exact=True).fill('B15901001')
                 page.get_by_label('密碼',exact=True).fill(password);page.get_by_role('button',name='登入',exact=True).click()
                 expect(page).to_have_url(base+'/')
                 assert next(c for c in context.cookies() if c['name']=='session')['secure']

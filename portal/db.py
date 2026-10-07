@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
  id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
  password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'student',
  enabled INTEGER NOT NULL DEFAULT 1, session_version INTEGER NOT NULL DEFAULT 1,
+ student_id TEXT,
  created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS devices (
@@ -48,6 +49,9 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 );
 CREATE TABLE IF NOT EXISTS worker_state (
  id INTEGER PRIMARY KEY CHECK(id = 1), heartbeat INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS user_id_sequence (
+ id INTEGER PRIMARY KEY CHECK(id = 1), last_id INTEGER NOT NULL
 );
 """
 
@@ -92,6 +96,15 @@ def initialize():
     conn = get_db()
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
+    # Additive migration keeps existing account IDs and reservation history intact.
+    with transaction() as conn:
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(users)")}
+        if "student_id" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN student_id TEXT")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_student_id ON users(student_id COLLATE NOCASE) "
+                     "WHERE student_id IS NOT NULL")
+        conn.execute("INSERT INTO user_id_sequence VALUES(1,COALESCE((SELECT MAX(id) FROM users),0)) "
+                     "ON CONFLICT(id) DO UPDATE SET last_id=MAX(last_id,excluded.last_id)")
     # Never repopulate an existing inventory or touch hardware.
     if not conn.execute("SELECT 1 FROM devices LIMIT 1").fetchone():
         with transaction() as conn:
@@ -100,3 +113,9 @@ def initialize():
                     "INSERT INTO devices(slug,name,model,description) VALUES(?,?,?,?)",
                     (f"pynq-{i:02}", f"PYNQ {i:02}", "PYNQ-Z2",
                      "適合數位邏輯、Python 與 FPGA 加速實驗。"))
+
+
+def next_user_id(conn):
+    """Never reuse a removed account's board workspace directory. Call in a transaction."""
+    conn.execute("UPDATE user_id_sequence SET last_id=MAX(last_id,COALESCE((SELECT MAX(id) FROM users),0))+1 WHERE id=1")
+    return conn.execute("SELECT last_id FROM user_id_sequence WHERE id=1").fetchone()[0]

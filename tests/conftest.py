@@ -20,6 +20,7 @@ def app(tmp_path, monkeypatch):
             get_db().execute("INSERT INTO users(id,email,name,password_hash,role,created_at) VALUES(?,?,?,?,?,?)",
                              (i, f"student{i}@example.com", f"Student {i}", generate_password_hash("correct-password-123"),
                               "admin" if i == 4 else "student", clock))
+            get_db().execute("UPDATE users SET student_id=? WHERE id=?", (f"B1590100{i}", i))
     return app
 
 

@@ -21,15 +21,16 @@ def test_public_pages(client):
 
 def test_registration_login_and_password_hash(client, app):
     token = csrf(client, "/register")
-    response = client.post("/register", data={"csrf_token":token,"name":"Test Student","email":"NEW@example.com",
+    response = client.post("/register", data={"csrf_token":token,"student_id":"b15901009","name":"Test Student","email":"NEW@example.com",
                                               "password":"a-long-password-123","password_confirm":"a-long-password-123","terms":"yes"})
     assert response.status_code == 302
     with app.app_context():
         row = get_db().execute("SELECT * FROM users WHERE email='new@example.com'").fetchone()
         assert row and row["password_hash"] != "a-long-password-123"
         assert row["role"] == "student"
+        assert row["student_id"] == "B15901009"
     token = csrf(client)
-    assert client.post("/login", data={"csrf_token":token,"email":"new@example.com","password":"a-long-password-123"}).status_code == 302
+    assert client.post("/login", data={"csrf_token":token,"identifier":"b15901009","password":"a-long-password-123"}).status_code == 302
     assert client.get("/rentals").status_code == 200
 
 

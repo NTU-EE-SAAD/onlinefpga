@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 import click
 from werkzeug.security import generate_password_hash
 
-from .db import get_db, initialize, transaction
+from .db import get_db, initialize, transaction, next_user_id
 from . import service
 
 
@@ -32,8 +32,8 @@ def init_app(app):
             with transaction() as conn:
                 if conn.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone():
                     raise service.RuleError("帳號已存在；請使用 promote-admin。")
-                conn.execute("INSERT INTO users(email,name,password_hash,role,created_at) VALUES(?,?,?,'admin',?)",
-                             (email, name, generate_password_hash(password), service.now()))
+                conn.execute("INSERT INTO users(id,email,name,password_hash,role,created_at) VALUES(?,?,?,?,'admin',?)",
+                             (next_user_id(conn), email, name, generate_password_hash(password), service.now()))
             click.echo("管理員已建立。")
         except service.RuleError as exc:
             raise click.ClickException(str(exc))
