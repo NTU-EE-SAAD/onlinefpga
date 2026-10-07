@@ -1,26 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}設備總覽{% endblock %}
 {% block content %}
-<section class="page-intro">
-  <div><p class="eyebrow">NTUEE MAKERSPACE / FPGA</p><h1>把時間留給實驗。</h1><p class="lead">選擇一台設備，開始你的下一個設計。</p></div>
-  <div class="intro-stat"><strong>{{ '%02d'|format(available) }}</strong><span>台設備可借用</span></div>
-</section>
-<div class="announcement"><span class="dot" aria-hidden="true"></span><span>每日 {{ maintenance_start }}–{{ maintenance_end }} 為維護時段，借用與預約需避開此時段。</span><a href="{{ url_for('web.guide') }}">借用須知 <span aria-hidden="true">↗</span></a></div>
-<section aria-labelledby="inventory-heading">
-  <div class="section-heading"><div><h2 id="inventory-heading">設備總覽</h2><p>每個帳號同時可保留一筆借用或預約。</p></div><span class="meta">{{ devices|length }} 台設備</span></div>
-  <div class="device-grid">
+<section class="equipment-index" aria-label="設備總覽">
+  <div class="inventory-meta"><span>{{ available }} 台可借用 / {{ devices|length }} 台設備</span><span>維護 {{ maintenance_start }}–{{ maintenance_end }}</span></div>
   {% for device in devices %}
-    <article class="device-card" data-device-id="{{ device.id }}" data-state="{{ device.state }}">
-      <div class="card-top"><span class="device-index">{{ '%02d'|format(loop.index) }} / FPGA</span><span class="badge {{ device.state }}" data-device-state>{{ {'available':'可借用','maintenance':'維護中','active':'使用中','preparing':'準備中','releasing':'回收中'}[device.state] }}</span></div>
-      <div class="board-illustration" aria-hidden="true"><div class="board-chip"><span>FPGA</span><small>{{ device.model }}</small></div><div class="board-traces"></div><div class="board-connectors"><i></i><i></i><i></i></div></div>
-      <div class="card-body"><p class="model-label">{{ device.model }}</p><h3>{{ device.name }}</h3><p class="device-description">{{ device.description }}</p>
-      <div class="device-specs"><span>單次最長 <strong>{{ device.max_minutes }} 分鐘</strong></span><span>{{ '模擬設備' if device.driver == 'simulated' else '實體設備' }}</span></div>
-      {% if device.driver == 'simulated' %}<p class="simulation-note">可體驗借用與預約，尚未連接實體 FPGA。</p>{% endif %}
-      </div>
-      <div class="card-footer"><span>{{ device.reservations|length }} 筆待開始預約</span><a class="card-action" href="{{ url_for('web.device', device_id=device.id) }}">查看時段 <span aria-hidden="true">→</span></a></div>
-    </article>
-  {% else %}<div class="empty-state"><h3>尚未新增設備</h3><p>請稍後再來查看。</p></div>{% endfor %}
-  </div>
+  <article class="equipment-row" data-device-id="{{ device.id }}" data-state="{{ device.state }}">
+    <div><span class="equipment-status {{ device.state }}">{{ {'available':'可借用','maintenance':'維護中','active':'使用中','preparing':'準備中','releasing':'回收中'}[device.state] }}</span><h2>{{ device.name }}</h2><p>{{ device.model }} · 最長 {{ device.max_minutes }} 分鐘{% if device.driver == 'simulated' %} · 模擬設備{% endif %}</p></div>
+    <div class="equipment-actions"><a class="button" href="{{ url_for('web.device', device_id=device.id) }}" {% if g.user and not device.maintenance %}data-open-booking="booking-{{ device.id }}" data-mode="{{ 'now' if device.state == 'available' else 'scheduled' }}"{% endif %}>{{ '現在開始' if device.state == 'available' else '查看時段' }}</a><a class="small muted" href="{{ url_for('web.device', device_id=device.id) }}">時段與詳情 ↗</a></div>
+  </article>
+  {% if g.user and not device.maintenance %}
+  <dialog class="booking-dialog" id="booking-{{ device.id }}" aria-labelledby="booking-title-{{ device.id }}">
+    <div class="dialog-heading"><div><p class="small muted">安排借用</p><h2 id="booking-title-{{ device.id }}">{{ device.name }}</h2></div><button type="button" class="text-button" data-close-dialog>關閉</button></div>
+    {% include '_booking_form.html' %}
+    <a class="dialog-details small muted" href="{{ url_for('web.device', device_id=device.id) }}">查看已安排時段與設備詳情 ↗</a>
+  </dialog>
+  {% endif %}
+  {% else %}<p class="compact-empty">尚未新增設備，請稍後再來查看。</p>{% endfor %}
 </section>
-<section class="how-it-works" aria-labelledby="steps-heading"><div><p class="eyebrow">GET STARTED</p><h2 id="steps-heading">三步，開始使用。</h2><a class="inline-link" href="{{ url_for('web.guide') }}">閱讀完整指南 →</a></div><ol><li><span>01</span><div><h3>選擇設備</h3><p>查看狀態與已預約時段。</p></div></li><li><span>02</span><div><h3>借用或預約</h3><p>立即開始，或安排未來 14 天的時段。</p></div></li><li><span>03</span><div><h3>進入工作空間</h3><p>準備完成後，從網站開啟 Jupyter。</p></div></li></ol></section>
 {% endblock %}

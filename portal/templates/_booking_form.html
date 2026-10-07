@@ -1,0 +1,10 @@
+{% if device.driver == 'simulated' %}<p class="small muted">模擬設備僅供體驗借用流程，尚無實體 Jupyter 工作空間。</p>{% endif %}
+{% if has_open %}<div class="notice warning">你已有一筆借用或預約。請先前往<a href="{{ url_for('web.rentals') }}">我的借用</a>結束或取消。</div>{% endif %}
+<form class="stack-form" method="post" action="{{ url_for('web.book',device_id=device.id) }}" data-booking-form>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <fieldset class="choice-group"><legend>借用方式</legend><label><input type="radio" name="mode" value="now" checked><span>立即借用</span></label><label><input type="radio" name="mode" value="scheduled"><span>預約時段</span></label></fieldset>
+  <label data-scheduled-time hidden>開始時間（{{ timezone }}）<input type="datetime-local" name="starts_at" step="60" disabled></label>
+  <label>使用時間<select name="minutes">{% for minute in range(15,device.max_minutes+1,15) %}<option value="{{ minute }}" {% if minute == 60 %}selected{% endif %}>{{ minute }} 分鐘</option>{% endfor %}</select></label>
+  <p class="small muted">單次最長 {{ device.max_minutes }} 分鐘。預約限未來 14 天內，請避開維護與已安排時段。預約結束時間不因準備延遲而延長。</p>
+  <button class="button" type="submit" {% if has_open or device.maintenance %}disabled{% endif %}>確認借用 →</button>
+</form>

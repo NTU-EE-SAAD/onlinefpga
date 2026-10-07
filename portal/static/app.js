@@ -1,19 +1,59 @@
 "use strict";
 
-const booking = document.querySelector("[data-booking-form]");
-if (booking) {
-  const scheduled = document.getElementById("scheduled-time");
+document.querySelectorAll("[data-booking-form]").forEach(booking => {
+  const scheduled = booking.querySelector("[data-scheduled-time]");
   const input = scheduled.querySelector("input");
   const button = booking.querySelector("button[type=submit]");
   const update = () => {
     const planned = booking.elements.mode.value === "scheduled";
     scheduled.hidden = !planned;
     input.required = planned;
+    input.disabled = !planned;
     button.textContent = planned ? "確認預約 →" : "確認借用 →";
   };
   booking.addEventListener("change", update);
   update();
+});
+
+const themeToggle = document.querySelector("[data-theme-toggle]");
+function updateThemeLabel() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  themeToggle.textContent = dark ? "淺色模式" : "深色模式";
+  themeToggle.setAttribute("aria-label", dark ? "切換淺色模式" : "切換深色模式");
 }
+if (themeToggle) {
+  updateThemeLabel();
+  themeToggle.addEventListener("click", () => {
+    const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("fpga-theme", theme); } catch (_) {}
+    updateThemeLabel();
+  });
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", event => {
+  try { if (localStorage.getItem("fpga-theme")) return; } catch (_) {}
+  document.documentElement.dataset.theme = event.matches ? "dark" : "light";
+  if (themeToggle) updateThemeLabel();
+});
+
+document.querySelectorAll("[data-open-booking]").forEach(link => {
+  link.addEventListener("click", event => {
+    const dialog = document.getElementById(link.dataset.openBooking);
+    if (!dialog || typeof dialog.showModal !== "function") return;
+    event.preventDefault();
+    const form = dialog.querySelector("[data-booking-form]");
+    form.querySelector(`input[name=mode][value="${link.dataset.mode}"]`).checked = true;
+    form.dispatchEvent(new Event("change"));
+    dialog.showModal();
+  });
+});
+document.querySelectorAll(".booking-dialog").forEach(dialog => {
+  dialog.querySelector("[data-close-dialog]").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", event => {
+    const bounds = dialog.getBoundingClientRect();
+    if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
+  });
+});
 
 document.querySelectorAll("form[data-confirm]").forEach(form => {
   form.addEventListener("submit", event => {
@@ -63,7 +103,7 @@ async function refreshStatus() {
       if (element && element.dataset.state !== device.state) changed = true;
     });
     // Preserve partially entered forms when another user's allocation changes.
-    const editing = [...document.querySelectorAll("input,select")].some(el => el === document.activeElement);
+    const editing = document.querySelector("dialog[open]") || [...document.querySelectorAll("input,select")].some(el => el === document.activeElement);
     if (changed && !editing) window.location.reload();
   } catch (_) {
     const warning = document.getElementById("scheduler-warning");

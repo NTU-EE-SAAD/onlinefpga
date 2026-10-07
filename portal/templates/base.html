@@ -8,27 +8,27 @@
   <title>FPGA reservation{% if request.endpoint != 'web.home' %} · {% block title %}設備借用平台{% endblock %}{% endif %}</title>
   <link rel="icon" href="{{ url_for('static', filename='makerspace.png') }}" type="image/png">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='makerspace.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v='makerspace-icon-1') }}">
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v='monochrome-1') }}">
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body data-authenticated="{{ 'true' if g.user else 'false' }}">
   <a class="skip-link" href="#main">跳至主要內容</a>
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="{{ url_for('web.home') }}"><img class="brand-mark" src="{{ url_for('static', filename='makerspace.png') }}" alt="" width="40" height="40">FPGA reservation<span class="brand-note">NTUEE Makerspace</span></a>
-      <nav aria-label="主要導覽">
-        <a href="{{ url_for('web.home') }}" {% if request.endpoint in ['web.home','web.device'] %}aria-current="page"{% endif %}>設備總覽</a>
-        {% if g.user %}<a href="{{ url_for('web.rentals') }}" {% if request.endpoint in ['web.rentals','web.rental'] %}aria-current="page"{% endif %}>我的借用</a>{% endif %}
-        <a href="{{ url_for('web.guide') }}" {% if request.endpoint == 'web.guide' %}aria-current="page"{% endif %}>使用指南</a>
-        {% if g.user and g.user.role == 'admin' %}<a href="{{ url_for('web.admin') }}" {% if request.endpoint == 'web.admin' %}aria-current="page"{% endif %}>管理</a>{% endif %}
-      </nav>
+      <a class="brand" href="{{ url_for('web.home') }}">NTUEE Makerspace</a>
       <div class="header-account">
-        {% if g.user %}
-          <a class="user-name" href="{{ url_for('web.account') }}">{{ g.user.name }}</a>
-          <form action="{{ url_for('web.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">登出</button></form>
-        {% else %}<a class="text-button" href="{{ url_for('web.login') }}">登入</a><a class="button button-small" href="{{ url_for('web.register') }}">建立帳號</a>{% endif %}
+        <button type="button" class="text-button theme-toggle" data-theme-toggle aria-label="切換深色模式">深色模式</button>
+        {% if g.user %}<a class="user-name" href="{{ url_for('web.account') }}">{{ g.user.name }}</a><form action="{{ url_for('web.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">登出</button></form>{% else %}<a class="text-button" href="{{ url_for('web.login') }}">登入</a><a class="button button-small" href="{{ url_for('web.register') }}">建立帳號</a>{% endif %}
       </div>
     </div>
+    <div class="portal-heading"><a href="{{ url_for('web.home') }}">FPGA Lab<span class="lab-dot" aria-hidden="true">.</span></a></div>
+      <nav class="portal-tabs" aria-label="主要導覽">
+        <a href="{{ url_for('web.home') }}" {% if request.endpoint in ['web.home','web.device'] %}aria-current="page"{% endif %}>設備總覽</a>
+        {% if g.user %}<a href="{{ url_for('web.rentals') }}" {% if request.endpoint in ['web.rentals','web.rental'] %}aria-current="page"{% endif %}>我的借用</a>{% endif %}
+        <a href="{{ url_for('web.guide') }}" {% if request.endpoint == 'web.guide' %}aria-current="page"{% endif %}>指南與須知</a>
+        {% if g.user and g.user.role == 'admin' %}<a href="{{ url_for('web.admin') }}" {% if request.endpoint == 'web.admin' %}aria-current="page"{% endif %}>管理</a>{% endif %}
+      </nav>
   </header>
   <main id="main" class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="notice {{ category }}" role="status">{{ message }}</div>{% endfor %}{% endwith %}

@@ -83,7 +83,11 @@ def validate_password(password):
 @bp.route("/")
 def home():
     devices = service.devices_with_status()
+    has_open = bool(g.user and get_db().execute(
+        f"SELECT 1 FROM rentals WHERE user_id=? AND status IN ({service.OPEN})",
+        (g.user["id"],)).fetchone())
     return render_template("home.html", devices=devices,
+                           has_open=has_open,
                            available=sum(d["state"] == "available" for d in devices),
                            maintenance_start=current_app.config["MAINTENANCE_START"],
                            maintenance_end=current_app.config["MAINTENANCE_END"])

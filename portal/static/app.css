@@ -1,11 +1,12 @@
 :root {
-  --ink:#17212d;
-  --muted:#667486;
-  --blue:#244563;
-  --blue-light:#eef3f7;
-  --line:#e0e5eb;
-  --paper:#fff;
-  --background:#f7f8fa;
+  color-scheme:light dark;
+  --ink:light-dark(#262729,#eeeeef);
+  --muted:light-dark(#64676d,#a8abb2);
+  --blue:var(--ink);
+  --blue-light:light-dark(#f1f2f4,#26282d);
+  --line:light-dark(#e1e3e7,#35373c);
+  --paper:light-dark(#fff,#1b1c20);
+  --background:light-dark(#fff,#17181b);
   --radius:8px
 }
 * {
@@ -1219,6 +1220,69 @@ dd {
   .detail-list {
     font-size:12px
   }
+}
+/* Monochrome portal: shared surfaces and native controls follow the theme. */
+:root[data-theme=light] { color-scheme:light }
+:root[data-theme=dark] { color-scheme:dark }
+body { min-height:100vh; display:flex; flex-direction:column; font-family:Arial,"Microsoft JhengHei",sans-serif }
+main.container { width:100%; flex:1; padding-top:34px; padding-bottom:70px }
+.site-header { border:0; background:var(--background) }
+.header-inner { min-height:72px; justify-content:space-between; gap:20px }
+.brand { font-size:14px; font-weight:500; letter-spacing:0 }
+.header-account { flex-wrap:wrap; justify-content:flex-end; gap:16px }
+.theme-toggle { border-radius:22px; background:var(--blue-light); color:var(--ink); padding:8px 14px }
+.portal-heading { text-align:center; font-size:64px; font-weight:500; letter-spacing:-3px; line-height:1.2; padding:46px 20px 38px }
+.lab-dot { color:var(--muted) }
+.site-header .portal-tabs { max-width:720px; margin:0 auto; justify-content:center; gap:36px; border-bottom:1px solid var(--line); padding:0 16px }
+.site-header .portal-tabs a { padding:16px 0 }
+.site-header .portal-tabs a[aria-current]:after { bottom:-1px }
+.equipment-index { max-width:720px; margin:auto }
+.inventory-meta { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--muted); font-size:12px; margin-bottom:14px }
+.equipment-row { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; padding:30px 0; border-bottom:1px solid var(--line) }
+.equipment-row h2 { font-size:28px; font-weight:500; margin:8px 0 6px; letter-spacing:-.7px }
+.equipment-row p { font-size:13px; color:var(--muted); margin:0 }
+.equipment-status { font-size:12px; color:var(--muted) }
+.equipment-status:before { content:""; display:inline-block; width:6px; height:6px; border-radius:50%; background:currentColor; margin-right:7px; vertical-align:middle }
+.equipment-status.available { color:var(--ink) }
+.equipment-actions { display:flex; flex-direction:column; align-items:center; gap:10px }
+.button { border-radius:999px; background:var(--ink); color:var(--paper); border-color:var(--ink) }
+.button:hover { background:var(--muted); border-color:var(--muted); color:var(--paper) }
+.button-outline { background:transparent; color:var(--ink); border-color:var(--line) }
+.button-outline:hover { background:var(--blue-light); color:var(--ink); border-color:var(--line) }
+.booking-dialog { width:calc(100% - 32px); max-width:480px; max-height:calc(100dvh - 48px); padding:28px; border:1px solid var(--line); border-radius:22px; background:var(--paper); color:var(--ink); overflow:auto }
+.booking-dialog::backdrop { background:rgba(0,0,0,.4); backdrop-filter:blur(3px) }
+.dialog-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:28px }
+.dialog-heading p { margin-bottom:4px }
+.dialog-heading h2 { font-size:28px; font-weight:500 }
+.dialog-details { display:block; text-align:center; margin-top:18px }
+.booking-dialog .stack-form > .button { width:100% }
+input:not([type=checkbox],[type=radio]),select,option,optgroup { background:var(--blue-light); color:var(--ink); border-color:var(--line) }
+input::placeholder { color:var(--muted); opacity:1 }
+.auth-panel,.table-wrap,.workspace-frame { background:var(--paper) }
+th { background:var(--blue-light) }
+.choice-group label:has(input:checked) { border-color:var(--ink) }
+.badge { background:var(--blue-light); color:var(--muted) }
+.badge.available,.badge.active { background:light-dark(#eef4ef,#23362a); color:light-dark(#386446,#aad6b5) }
+.badge.preparing,.badge.releasing { background:var(--blue-light); color:var(--ink) }
+.badge.maintenance { background:light-dark(#f8eeee,#3b2727); color:light-dark(#894b4b,#e4b0b0) }
+.notice.info { background:var(--blue-light); color:var(--ink); border-color:var(--line) }
+.notice.success { background:light-dark(#eef4ef,#23362a); color:light-dark(#386446,#aad6b5); border-color:var(--line) }
+.notice.warning { background:light-dark(#f6f3ed,#373125); color:light-dark(#756139,#e1cf9f); border-color:var(--line) }
+.notice.error { background:light-dark(#f8eeee,#3b2727); color:light-dark(#894b4b,#e4b0b0); border-color:var(--line) }
+.site-footer { background:var(--background) }
+.skip-link { background:var(--paper); color:var(--ink) }
+.danger-text { color:light-dark(#894b4b,#e4b0b0) }
+:focus-visible { outline:2px solid var(--ink); outline-offset:4px }
+@media(max-width:600px) {
+  .header-inner { padding:16px 20px; flex-wrap:wrap }
+  .header-account { gap:12px }
+  .portal-heading { font-size:48px; padding:26px 20px 28px }
+  .site-header .portal-tabs { gap:24px; margin:0 20px; flex-wrap:wrap }
+  main.container { padding:28px 20px 50px }
+  .equipment-row { gap:14px }
+  .equipment-row h2 { font-size:23px }
+  .equipment-actions .button { padding:8px 16px; font-size:13px }
+  .booking-dialog { padding:22px }
 }
 @media(prefers-reduced-motion:reduce) {
   html {

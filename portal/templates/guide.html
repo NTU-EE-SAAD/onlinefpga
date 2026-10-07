@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}使用指南{% endblock %}
+{% block title %}使用指南與借用須知{% endblock %}
 {% block content %}
-<div class="page-title"><p class="eyebrow">BEFORE YOUR EXPERIMENT</p><h1>使用指南</h1><p class="lead">由 NTUEE Makerspace 管理，供同學借用 FPGA 並安排實驗時段。</p></div>
+<div class="page-title"><h1>使用指南與借用須知</h1></div>
 <div class="guide-layout"><aside class="guide-nav"><a href="#borrowing">借用與預約</a><a href="#workspace">使用工作空間</a><a href="#files">保存檔案</a><a href="#rules">借用須知</a><a href="#help">需要協助</a></aside><div class="guide-content">
 <section id="borrowing"><span class="eyebrow">01 / BOOKING</span><h2>借用與預約</h2><p>建立網站帳號並登入後，從設備總覽選擇板子。立即借用會由排程準備設備；預約則在開始時間到達後自動啟用。</p><ul><li>每個帳號同時只能有一筆借用或預約。</li><li>可預約未來 14 天內的時段，使用時間以 15 分鐘為單位。</li><li>每台設備的借用時限會顯示在設備頁面。</li><li>借用需避開每日維護時段，且不能與其他預約重疊。</li><li>預約的結束時間固定；若設備準備延遲，使用時長不會自動延長。</li></ul></section>
 <section id="workspace"><span class="eyebrow">02 / WORKSPACE</span><h2>使用工作空間</h2><p>在「我的借用」開啟當次借用，查看剩餘時間。設備準備完成後，點選「開啟 Jupyter」即可使用，不需再次登入。PYNQ-Z2 與 KV260 都透過網站連線。Notebook 程式在板子上執行，可搭配課程提供的 FPGA 設計檔進行實驗。</p><div class="notice info">標示「模擬設備」的板子僅供體驗借用流程，不會執行 FPGA 程式，也沒有 Jupyter 連線。</div><p>PYNQ-Z2 與 KV260 的設計檔不能互用。若要測試連線，建立 Python 3 Notebook，執行 <code>import socket; print(socket.gethostname())</code>。如果作業需要自己撰寫 Verilog／VHDL，請依教材使用 Vivado 產生相容的 bitstream，再上傳所需檔案。</p></section>
